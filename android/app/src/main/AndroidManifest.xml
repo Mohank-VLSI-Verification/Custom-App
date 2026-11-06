@@ -19,33 +19,7 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <intent-filter>
-                <action android:name="es.antonborri.home_widget.action.LAUNCH" />
-            </intent-filter>
         </activity>
-
-        <!-- Home-screen widget -->
-        <receiver
-            android:name=".ShiftWidgetProvider"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/shift_widget_info" />
-        </receiver>
-        <receiver
-            android:name="es.antonborri.home_widget.HomeWidgetBackgroundReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="es.antonborri.home_widget.action.BACKGROUND" />
-            </intent-filter>
-        </receiver>
-        <service
-            android:name="es.antonborri.home_widget.HomeWidgetBackgroundService"
-            android:exported="true"
-            android:permission="android.permission.BIND_JOB_SERVICE" />
 
         <meta-data
             android:name="flutterEmbedding"

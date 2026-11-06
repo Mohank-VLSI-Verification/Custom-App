@@ -2,14 +2,11 @@ import 'package:flutter/material.dart';
 
 import 'screens/root_screen.dart';
 import 'services/repository.dart';
-import 'services/widget_service.dart';
 import 'theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Repository.instance.load();
-  await WidgetService.init();
-  WidgetService.update(Repository.instance);
   runApp(const ShiftTrackerApp());
 }
 

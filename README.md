@@ -1,6 +1,6 @@
 # Shift Tracker
 
-Personal shift tracker: punch in/out, pay-period totals, calendar, trends, and a home-screen widget.
+Personal shift tracker: punch in/out, pay-period totals, calendar, trends.
 
 ## What changed from the original
 

@@ -2,8 +2,6 @@
 
 1. Signs release builds with android/keystore/release.jks, so every new
    version installs over the previous one and keeps your data.
-2. Drops the home_widget background-service entry from the manifest if the
-   resolved home_widget version no longer ships that class.
 """
 import pathlib
 import re
@@ -61,43 +59,3 @@ elif groovy.exists():
 else:
     sys.exit("No android/app/build.gradle(.kts) found - did flutter create run?")
 
-# Pin Jetpack Glance (pulled in by home_widget) to the stable 1.1.1 release.
-# Newer alpha builds need a newer Android Gradle plugin than Flutter ships.
-gradle_file = kts if kts.exists() else groovy
-gtext = gradle_file.read_text()
-if "androidx.glance" not in gtext:
-    if gradle_file is kts:
-        gtext += (
-            "\nconfigurations.all {\n"
-            "    resolutionStrategy.eachDependency {\n"
-            '        if (requested.group == "androidx.glance") {\n'
-            '            useVersion("1.1.1")\n'
-            "        }\n"
-            "    }\n"
-            "}\n"
-        )
-    else:
-        gtext += (
-            "\nconfigurations.all {\n"
-            "    resolutionStrategy.eachDependency { details ->\n"
-            "        if (details.requested.group == 'androidx.glance') {\n"
-            "            details.useVersion '1.1.1'\n"
-            "        }\n"
-            "    }\n"
-            "}\n"
-        )
-    gradle_file.write_text(gtext)
-print("Pinned androidx.glance to 1.1.1")
-
-# home_widget background service: keep only if the plugin still has it.
-lock = (root / "pubspec.lock").read_text()
-m = re.search(r"\n  home_widget:\n(?:    .*\n)*?    version: \"([^\"]+)\"", lock)
-version = m.group(1) if m else None
-cache = pathlib.Path.home() / ".pub-cache" / "hosted" / "pub.dev" / f"home_widget-{version}"
-has_service = any(cache.rglob("HomeWidgetBackgroundService.*")) if cache.exists() else True
-manifest = android / "app" / "src" / "main" / "AndroidManifest.xml"
-if not has_service:
-    mtext = manifest.read_text()
-    mtext = re.sub(r"\s*<service\s+android:name=\"es\.antonborri\.home_widget\.HomeWidgetBackgroundService\"[^>]*/>", "", mtext)
-    manifest.write_text(mtext)
-print(f"home_widget {version}: background service {'kept' if has_service else 'removed'}")

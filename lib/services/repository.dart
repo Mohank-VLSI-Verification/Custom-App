@@ -6,16 +6,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/settings.dart';
 import '../models/shift.dart';
 import 'ledger.dart';
-import 'widget_service.dart';
 
 class Repository extends ChangeNotifier {
   Repository._();
 
   /// The instance the app UI uses.
   static final Repository instance = Repository._();
-
-  /// A separate instance for the home-screen widget's background callback.
-  factory Repository.background() => Repository._();
 
   static const _kShifts = 'shifts';
   static const _kSettings = 'settings';
@@ -35,7 +31,6 @@ class Repository extends ChangeNotifier {
 
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload(); // pick up changes made from the home-screen widget
 
     final shifts = <Shift>[];
     final raw = prefs.getString(_kShifts);
@@ -82,7 +77,6 @@ class Repository extends ChangeNotifier {
     } else {
       await prefs.setString(_kActive, _activeStart!.toIso8601String());
     }
-    await WidgetService.update(this);
   }
 
   Future<void> togglePunch() => isClockedIn ? punchOut() : punchIn();
