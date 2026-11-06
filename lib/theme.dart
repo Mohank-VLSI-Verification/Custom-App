@@ -10,10 +10,11 @@ class AppColors {
   static const muted = Color(0xFF94A3B8);
   static const faint = Color(0xFF64748B);
   static const weekendDate = Color(0xFFB4BCC8);
+  static const outsideDate = Color(0xFF475569);
   static const punchIn = Color(0xFF4CAF50);
   static const punchOut = Color(0xFFE53935);
   static const hoursGreen = Color(0xFF6EE7B7);
-  static const payday = Color(0xFFFBBF24);
+  static const payday = Color(0xFF4CAF50);
 }
 
 ThemeData buildTheme() {

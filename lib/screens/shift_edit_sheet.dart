@@ -5,6 +5,7 @@ import '../services/repository.dart';
 import '../theme.dart';
 import '../utils/format.dart';
 import '../utils/time_utils.dart';
+import 'time_wheel.dart';
 
 class ShiftEditResult {
   final Shift? shift;
@@ -109,9 +110,10 @@ class _ShiftEditSheetState extends State<ShiftEditSheet> {
 
   Future<void> _pickTime(bool isStart) async {
     final current = isStart ? _start : _end;
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(current),
+    final picked = await showTimeWheel(
+      context,
+      initial: TimeOfDay.fromDateTime(current),
+      title: isStart ? 'Start time' : 'End time',
     );
     if (picked == null) return;
     setState(() {
@@ -157,18 +159,22 @@ class _ShiftEditSheetState extends State<ShiftEditSheet> {
                   color: AppColors.text),
             ),
             const SizedBox(height: 16),
-            _DateTimeRow(
-              label: 'Start',
-              value: _start,
-              onDate: () => _pickDate(true),
-              onTime: () => _pickTime(true),
+            _PickRow(
+              label: 'Date',
+              text: fmtDay(_start),
+              onTap: () => _pickDate(true),
             ),
             const SizedBox(height: 12),
-            _DateTimeRow(
+            _PickRow(
+              label: 'Start',
+              text: fmtClock(_start),
+              onTap: () => _pickTime(true),
+            ),
+            const SizedBox(height: 12),
+            _PickRow(
               label: 'End',
-              value: _end,
-              onDate: () => _pickDate(false),
-              onTime: () => _pickTime(false),
+              text: fmtClock(_end),
+              onTap: () => _pickTime(false),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -211,17 +217,15 @@ class _ShiftEditSheetState extends State<ShiftEditSheet> {
   }
 }
 
-class _DateTimeRow extends StatelessWidget {
+class _PickRow extends StatelessWidget {
   final String label;
-  final DateTime value;
-  final VoidCallback onDate;
-  final VoidCallback onTime;
+  final String text;
+  final VoidCallback onTap;
 
-  const _DateTimeRow({
+  const _PickRow({
     required this.label,
-    required this.value,
-    required this.onDate,
-    required this.onTime,
+    required this.text,
+    required this.onTap,
   });
 
   @override
@@ -235,14 +239,11 @@ class _DateTimeRow extends StatelessWidget {
         ),
         Expanded(
           child: OutlinedButton(
-            onPressed: onDate,
-            child: Text(fmtDay(value)),
+            onPressed: onTap,
+            style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14)),
+            child: Text(text, style: const TextStyle(fontSize: 16)),
           ),
-        ),
-        const SizedBox(width: 8),
-        OutlinedButton(
-          onPressed: onTime,
-          child: Text(fmtClock(value)),
         ),
       ],
     );

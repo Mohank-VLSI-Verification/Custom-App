@@ -6,7 +6,6 @@ import '../services/repository.dart';
 import '../theme.dart';
 import '../utils/format.dart';
 import '../utils/time_utils.dart';
-import 'shift_edit_sheet.dart';
 import 'widgets.dart';
 
 class CalendarTab extends StatefulWidget {
@@ -38,8 +37,6 @@ class _CalendarTabState extends State<CalendarTab> {
               padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
               child: _calendar(context),
             ),
-            const SizedBox(height: 16),
-            _dayCard(context),
           ],
         ),
       ),
@@ -55,99 +52,129 @@ class _CalendarTabState extends State<CalendarTab> {
       currentDay: DateTime.now(),
       calendarFormat: CalendarFormat.month,
       availableCalendarFormats: const {CalendarFormat.month: 'Month'},
-      startingDayOfWeek: StartingDayOfWeek.sunday,
+      startingDayOfWeek: StartingDayOfWeek.monday,
+      weekNumbersVisible: true,
       availableGestures: AvailableGestures.horizontalSwipe,
-      daysOfWeekHeight: 36,
-      rowHeight: 64,
+      daysOfWeekHeight: 28,
+      rowHeight: 70,
       headerStyle: HeaderStyle(
         titleCentered: true,
         formatButtonVisible: false,
-        titleTextStyle: TextStyle(
-            fontSize: 18, fontWeight: FontWeight.w700, color: onSurface),
-        leftChevronIcon: Icon(Icons.chevron_left, color: onSurface),
-        rightChevronIcon: Icon(Icons.chevron_right, color: onSurface),
+        leftChevronIcon: Icon(Icons.chevron_left, color: onSurface, size: 28),
+        rightChevronIcon:
+            Icon(Icons.chevron_right, color: onSurface, size: 28),
       ),
-      calendarStyle: const CalendarStyle(outsideDaysVisible: false),
+      calendarStyle: const CalendarStyle(outsideDaysVisible: true),
       selectedDayPredicate: (day) => sameDay(day, _selected),
       onDaySelected: (selected, focused) => setState(() {
         _selected = dateOnly(selected);
-        _focused = dateOnly(focused);
+        _focused = dateOnly(selected);
       }),
       onDayLongPressed: (selected, focused) => _onLongPress(dateOnly(selected)),
       onPageChanged: (focused) => _focused = dateOnly(focused),
       calendarBuilders: CalendarBuilders(
-        prioritizedBuilder: (context, day, focused) => _cell(context, day),
-        dowBuilder: (context, day) {
-          final weekend = day.weekday == DateTime.saturday ||
-              day.weekday == DateTime.sunday;
-          return Center(
-            child: Text(
-              DateFormat.E().format(day),
+        prioritizedBuilder: (context, day, focused) =>
+            _cell(context, day, focused),
+        headerTitleBuilder: (context, day) => Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              DateFormat.MMMM().format(day),
               style: TextStyle(
-                fontSize: 15,
-                color: weekend ? AppColors.faint : AppColors.muted,
-              ),
+                  fontSize: 22, fontWeight: FontWeight.w800, color: onSurface),
             ),
-          );
-        },
+            Text(
+              '${day.year}',
+              style: const TextStyle(fontSize: 12, color: AppColors.muted),
+            ),
+          ],
+        ),
+        dowBuilder: (context, day) => Center(
+          child: Text(
+            DateFormat.E().format(day),
+            style: const TextStyle(fontSize: 13, color: AppColors.muted),
+          ),
+        ),
+        weekNumberBuilder: (context, weekNumber) => Center(
+          child: Text(
+            '$weekNumber',
+            style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.faint),
+          ),
+        ),
       ),
     );
   }
 
-  Widget _cell(BuildContext context, DateTime rawDay) {
+  Widget _cell(BuildContext context, DateTime rawDay, DateTime focused) {
     final day = dateOnly(rawDay);
     final scheme = Theme.of(context).colorScheme;
+    final outside = day.month != focused.month;
     final selected = sameDay(day, _selected);
     final isToday = sameDay(day, DateTime.now());
     final weekend =
         day.weekday == DateTime.saturday || day.weekday == DateTime.sunday;
-    final payday = isPayday(_repo.settings.paydayAnchor, day);
-    final minutes = _repo.ledger.day(day);
+    final payday = !outside && isPayday(_repo.settings.paydayAnchor, day);
+    final minutes = outside ? 0 : _repo.ledger.day(day);
 
-    Color numberColor = weekend ? AppColors.weekendDate : AppColors.text;
-    if (isToday) numberColor = scheme.primary;
-    if (selected) numberColor = Colors.white;
+    // Payday: solid green tile. Worked day: tinted tile. Selected: outline.
+    Color? fill;
+    Color fg;
+    if (payday) {
+      fill = AppColors.payday;
+      fg = Colors.white;
+    } else if (minutes > 0) {
+      fill = scheme.primary.withValues(alpha: 0.14);
+      fg = scheme.primary;
+    } else {
+      fg = outside
+          ? AppColors.outsideDate
+          : (isToday
+              ? scheme.primary
+              : (weekend ? AppColors.muted : AppColors.text));
+    }
 
-    return Column(
-      children: [
-        const SizedBox(height: 4),
-        Container(
-          width: 40,
-          height: 40,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: selected ? scheme.primary : null,
-            border: payday
-                ? Border.all(color: AppColors.payday, width: 2.5)
-                : null,
-          ),
-          child: Text(
-            '${day.day}',
-            style: TextStyle(
-              fontSize: 17,
-              fontWeight:
-                  selected || isToday ? FontWeight.w700 : FontWeight.w500,
-              color: numberColor,
-            ),
-          ),
+    return Padding(
+      padding: const EdgeInsets.all(2.5),
+      child: Container(
+        padding: const EdgeInsets.only(top: 6),
+        decoration: BoxDecoration(
+          color: fill,
+          borderRadius: BorderRadius.circular(10),
+          border: selected && !outside
+              ? Border.all(color: scheme.primary, width: 2)
+              : null,
         ),
-        if (minutes > 0)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 1),
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                fmtMinutes(minutes),
-                style: const TextStyle(
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.hoursGreen,
-                ),
+        child: Column(
+          children: [
+            Text(
+              '${day.day}',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: fg,
               ),
             ),
-          ),
-      ],
+            if (minutes > 0) ...[
+              const SizedBox(height: 3),
+              Text(
+                '${minutes ~/ 60}H',
+                style: TextStyle(
+                    fontSize: 12, fontWeight: FontWeight.w700, color: fg),
+              ),
+              Text(
+                '${minutes % 60}M',
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: fg.withValues(alpha: 0.85)),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 
@@ -202,71 +229,5 @@ class _CalendarTabState extends State<CalendarTab> {
     } else if (choice == 'clear') {
       await _repo.updateSettings(settings.copyWith(clearPayday: true));
     }
-  }
-
-  Widget _dayCard(BuildContext context) {
-    final ledger = _repo.ledger;
-    final shifts = _repo.shifts
-        .where((s) => sameDay(s.start, _selected))
-        .toList()
-      ..sort((a, b) => a.start.compareTo(b.start));
-    final payday = isPayday(_repo.settings.paydayAnchor, _selected);
-
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              SectionTitle(fmtDay(_selected)),
-              if (payday) ...[
-                const SizedBox(width: 10),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: AppColors.payday.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: const Text(
-                    'Payday',
-                    style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.payday),
-                  ),
-                ),
-              ],
-              const Spacer(),
-              Text(
-                fmtMinutes(ledger.day(_selected)),
-                style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.text),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          if (shifts.isEmpty) const EmptyNote('No shifts on this day.'),
-          for (final s in shifts)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: ShiftRow(
-                shift: s,
-                paidMinutes: ledger.shift(s),
-                onTap: () => openShiftEditor(context, existing: s),
-              ),
-            ),
-          const SizedBox(height: 4),
-          TextButton.icon(
-            onPressed: () => openShiftEditor(context, day: _selected),
-            icon: const Icon(Icons.add),
-            label: const Text('Add shift on this day',
-                style: TextStyle(fontSize: 16)),
-          ),
-        ],
-      ),
-    );
   }
 }
