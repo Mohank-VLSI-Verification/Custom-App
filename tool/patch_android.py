@@ -61,6 +61,34 @@ elif groovy.exists():
 else:
     sys.exit("No android/app/build.gradle(.kts) found - did flutter create run?")
 
+# Pin Jetpack Glance (pulled in by home_widget) to the stable 1.1.1 release.
+# Newer alpha builds need a newer Android Gradle plugin than Flutter ships.
+gradle_file = kts if kts.exists() else groovy
+gtext = gradle_file.read_text()
+if "androidx.glance" not in gtext:
+    if gradle_file is kts:
+        gtext += (
+            "\nconfigurations.all {\n"
+            "    resolutionStrategy.eachDependency {\n"
+            '        if (requested.group == "androidx.glance") {\n'
+            '            useVersion("1.1.1")\n'
+            "        }\n"
+            "    }\n"
+            "}\n"
+        )
+    else:
+        gtext += (
+            "\nconfigurations.all {\n"
+            "    resolutionStrategy.eachDependency { details ->\n"
+            "        if (details.requested.group == 'androidx.glance') {\n"
+            "            details.useVersion '1.1.1'\n"
+            "        }\n"
+            "    }\n"
+            "}\n"
+        )
+    gradle_file.write_text(gtext)
+print("Pinned androidx.glance to 1.1.1")
+
 # home_widget background service: keep only if the plugin still has it.
 lock = (root / "pubspec.lock").read_text()
 m = re.search(r"\n  home_widget:\n(?:    .*\n)*?    version: \"([^\"]+)\"", lock)
